@@ -1,138 +1,157 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Live Stream Player - GW TEAM</title>
-    
-    <!-- Shaka Player UI CSS -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/shaka-player/4.3.5/controls.min.css">
-    
-    <style>
-        /* Base styles for a professional, full-screen responsive look */
-        body, html {
-            margin: 0;
-            padding: 0;
-            width: 100%;
-            height: 100%;
-            background-color: #000;
-            overflow: hidden;
-            font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
-        }
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Star Sports // Dillzy (Ad-Free)</title>
+<meta name="referrer" content="no-referrer">
 
-        /* Container for the player */
-        .video-container {
-            width: 100vw;
-            height: 100vh;
-            position: relative;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            background: #000;
-        }
+<!-- Shaka Player Scripts & Styles -->
+<script src="https://cdn.jsdelivr.net/npm/shaka-player@4.16.2/dist/shaka-player.ui.min.js"></script>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/shaka-player@4.16.2/dist/controls.css"/>
 
-        /* The actual video element */
-        video {
-            width: 100%;
-            height: 100%;
-            outline: none;
-        }
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html, body {
+    width: 100%;
+    height: 100%;
+    background: #000;
+    overflow: hidden;
+    font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+  }
 
-        /* Top Right Branding CSS */
-        .branding {
-            position: absolute;
-            top: 20px;
-            right: 20px;
-            z-index: 999;
-            background: rgba(0, 0, 0, 0.6); /* Semi-transparent background */
-            color: #ffffff;
-            padding: 8px 16px;
-            font-size: 16px;
-            font-weight: 800;
-            letter-spacing: 1px;
-            border-radius: 4px;
-            border: 1px solid rgba(255, 255, 255, 0.15);
-            pointer-events: none; /* Prevents blocking clicks on the video */
-            text-shadow: 1px 1px 3px rgba(0,0,0,0.8);
-            box-shadow: 0 4px 10px rgba(0,0,0,0.5);
-            backdrop-filter: blur(4px);
-            user-select: none;
-        }
+  .shaka-video-container {
+    position: fixed;
+    inset: 0;
+    background: #000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
 
-        /* Ensures Shaka UI takes full space */
-        .shaka-video-container {
-            width: 100%;
-            height: 100%;
-        }
-    </style>
+  video {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    background: #000;
+  }
+
+  .custom-watermark {
+    position: absolute;
+    z-index: 40;
+    pointer-events: none;
+    top: 65%;
+    left: 6%;
+    transform: translateY(-50%);
+    font-size: 11px;
+    font-weight: 600;
+    color: rgba(255,255,255,0.12);
+  }
+
+  @media(max-width: 700px) {
+    .custom-watermark { font-size: 9px; top: 60%; left: 16%; }
+  }
+</style>
 </head>
 <body>
 
-    <!-- Video Container -->
-    <div class="video-container" data-shaka-player-container>
-        <!-- GW TEAM Branding -->
-        <div class="branding">GW TEAM</div>
-        
-        <!-- Video Element -->
-        <video data-shaka-player id="video" autoplay></video>
-    </div>
+<div class="shaka-video-container" id="player-container">
+  <video id="video" autoplay muted playsinline preload="metadata"></video>
+  <div class="custom-watermark"></div>
+</div>
 
-    <!-- Shaka Player UI JS -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/shaka-player/4.3.5/shaka-player.ui.min.js"></script>
+<script>
+(function(){
+  const CONFIG = {
+    streamUrl: "https://jiotvioslive.cdn.jio.com/bpk-tv/Star_Sports_HD1_BTS/output/index.mpd",
+    keyId: "965dc2ddb1d85138ad787999a7f30ca5",
+    key: "859695076e67fe961836b564db6d689c",
+    cookieUrl: "https://allrounder-live4.pages.dev/api/cookie.json"
+  };
 
-    <script>
-        // Extracting your stream details
-        const streamUrl = 'https://dash.vodep39240327.workers.dev/?url=https://jiotvpllive.cdn.jio.com/bpk-tv/Star_Sports_HD1_Hindi_BTS/output/index.mpd&name=Star_Sports_HD1_Hindi&keyId=400131994b445d8c8817202248760fda&key=2d56cb6f07a75b9aff165d534ae2bfc4&cookie=__hdnea__=st=1775299210~exp=1775320810~acl=/*~hmac=df800a88c7a9bbafdcb79f6a1cc631a7c46a1e0acac3746881482f622aa518b5';
-        
-        // DRM Keys extracted from your URL
-        const clearKeyId = '400131994b445d8c8817202248760fda';
-        const clearKeyValue = '2d56cb6f07a75b9aff165d534ae2bfc4';
+  document.addEventListener("DOMContentLoaded", async () => {
+    shaka.polyfill.installAll();
+    if(!shaka.Player.isBrowserSupported()) return;
 
-        async function initPlayer() {
-            const video = document.getElementById('video');
-            const videoContainer = document.querySelector('.video-container');
+    const video = document.getElementById("video");
+    const container = document.getElementById("player-container");
 
-            // Initialize Shaka Player
-            const player = new shaka.Player(video);
-            
-            // Set up the Shaka UI overlay
-            const ui = new shaka.ui.Overlay(player, videoContainer, video);
-            
-            // Configure UI Controls
-            ui.configure({
-                controlPanelElements: [
-                    'play_pause', 'time_and_duration', 'spacer', 'mute', 
-                    'volume', 'fullscreen', 'overflow_menu'
-                ]
-            });
+    // Start muted to bypass browser autoplay restrictions
+    video.muted = true;
 
-            // Listen for player errors
-            player.addEventListener('error', onPlayerErrorEvent);
+    const player = new shaka.Player();
+    await player.attach(video);
 
-            // Apply ClearKey DRM configuration
-            player.configure({
-                drm: {
-                    clearKeys: {
-                        [clearKeyId]: clearKeyValue
-                    }
-                }
-            });
+    const ui = new shaka.ui.Overlay(player, container, video);
 
-            // Try to load the stream
-            try {
-                await player.load(streamUrl);
-                console.log('Stream loaded successfully.');
-            } catch (error) {
-                console.error('Error loading stream:', error);
-            }
+    ui.configure({
+      addBigPlayButton: true,
+      controlPanelElements: [
+        "mute",              // First - volume/mute button
+        "play_pause",        // Second - play/pause button  
+        "time_and_duration", // Third - timeline timings (00:00 / 00:00)
+        "spacer",
+        "quality",
+        "picture_in_picture",
+        "fullscreen"
+      ],
+      seekBarColors: {
+        base: "white",
+        buffered: "red", 
+        played: "green"
+      }
+    });
+
+    player.configure({
+      drm: { clearKeys: { [CONFIG.keyId]: CONFIG.key } },
+      manifest: { defaultPresentationDelay: 5 },
+      streaming: {
+        lowLatencyMode: true,
+        bufferingGoal: 10,
+        rebufferingGoal: 2,
+        safeSeekOffset: 5
+      }
+    });
+
+    let cookieValue = "";
+
+    try {
+      const response = await fetch(CONFIG.cookieUrl, { cache: "no-store" });
+      const data = await response.json();
+      cookieValue = data.cookie || "";
+    } catch(e) {}
+
+    if(cookieValue) {
+      player.getNetworkingEngine().registerRequestFilter((type, request) => {
+        request.headers["Referer"] = "https://www.jiotv.com/";
+        request.headers["User-Agent"] = "plaYtv/7.1.5 (Linux;Android 13) ExoPlayerLib/2.11.6";
+        request.headers["Cookie"] = cookieValue;
+
+        let urlCookie = cookieValue.startsWith("__hdnea__=") ? cookieValue.substring(10) : cookieValue;
+
+        if((type === shaka.net.NetworkingEngine.RequestType.MANIFEST ||
+            type === shaka.net.NetworkingEngine.RequestType.SEGMENT) &&
+            !request.uris[0].includes("__hdnea__")) {
+          const sep = request.uris[0].includes("?") ? "&" : "?";
+          request.uris[0] += sep + "__hdnea__=" + urlCookie;
         }
+      });
+    }
 
-        function onPlayerErrorEvent(event) {
-            console.error('Shaka Player Error:', event.detail);
-        }
+    try {
+      await player.load(CONFIG.streamUrl);
+      video.play().catch(() => {});
+    } catch(e) {
+      console.error("Error loading stream", e);
+    }
 
-        // Initialize player once DOM is fully loaded
-        document.addEventListener('DOMContentLoaded', initPlayer);
-    </script>
+    // Try unmuting once the stream successfully starts playing
+    video.addEventListener("play", () => {
+      video.muted = false;
+    });
+  });
+})();
+</script>
+
 </body>
 </html>
